@@ -129,3 +129,19 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid va
 .account-feedback.error{color:#ff9baf}
 .privacy-note{border-top:1px solid #ffffff12;padding-top:13px;color:#78869e;font-size:9px;line-height:1.6}
 @media(max-width:480px){.account-wrap{padding:24px 20px}.notification-toolbar{align-items:flex-start;flex-direction:column}.notification-actions{width:100%;justify-content:space-between}.notifications-page{padding-top:34px}}
+
+
+/* Modération */
+.moderation-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 0;color:var(--muted);font-size:12px}
+.moderation-list{display:grid;gap:14px;margin-bottom:22px}
+.moderation-card{padding:20px;border:1px solid #ffffff18;border-radius:20px;background:linear-gradient(145deg,#151f32,#101725);box-shadow:0 12px 32px #0002}
+.moderation-card h3{margin:0 0 8px;font:700 15px Manrope,sans-serif}
+.moderation-card p{color:#d9dfed;line-height:1.6;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.moderation-meta{color:var(--muted);font-size:11px;margin-bottom:12px}
+.moderation-tag{display:inline-flex;padding:5px 9px;border-radius:99px;background:#a78bfa18;color:#c4b5fd;font-size:9px;font-weight:800;letter-spacing:1px;margin-bottom:10px}
+.moderation-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.moderation-actions button{border:1px solid #ffffff20;border-radius:12px;padding:10px 14px;font-weight:800;font-size:12px;cursor:pointer}
+.moderation-approve{background:linear-gradient(100deg,#c7ff63,#67e8f9);color:#10151b}
+.moderation-reject{background:#341b2a;color:#ff9fba;border-color:#fb8acb55!important}
+.moderation-empty{padding:32px 20px;text-align:center;border:1px dashed #ffffff25;border-radius:18px;color:var(--muted)}
+.moderation-parent{padding:10px 12px;border-left:2px solid var(--violet);background:#a78bfa0d;border-radius:0 10px 10px 0;color:#c5cce0;font-size:12px}
