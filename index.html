@@ -14,7 +14,7 @@
   <div class="app-shell">
     <header class="topbar">
       <a class="brand" href="#" aria-label="À TA PLACE, accueil"><span class="brand-mark">À</span><span>À TA PLACE<span class="brand-dot">.</span><small>TON AVIS COMPTE</small></span></a>
-      <div class="top-actions"><button class="icon-btn" id="installBtn" hidden aria-label="Installer l'application">⇩</button><button class="avatar" id="profileBtn" aria-label="Profil">M</button></div>
+      <div class="top-actions"><button class="icon-btn" id="installBtn" hidden aria-label="Installer l'application">⇩</button><button class="icon-btn notification-trigger" id="notificationsBtn" aria-label="Notifications">♧<i id="notificationBadge" hidden>0</i></button><button class="avatar" id="profileBtn" aria-label="Profil">?</button></div>
     </header>
     <main>
       <section class="welcome">
@@ -29,11 +29,45 @@
       <nav class="feed-tabs" aria-label="Filtres du fil"><button class="tab active" data-filter="all">Pour toi</button><button class="tab" data-filter="popular">Populaires</button><button class="tab" data-filter="new">Récents</button></nav>
       <section class="feed-heading"><div><p class="eyebrow">LA COMMUNAUTÉ DÉCIDE</p><h2>Les situations du moment</h2></div><span class="feed-count" id="feedCount">—</span></section>
       <section id="feed" class="feed" aria-live="polite"></section>
-      <section class="bottom-note"><span>✳</span><p>Un bon débat commence par l'écoute.<br><b>Respecte les avis, même différents.</b></p></section>
+      <section id="notificationsPage" class="notifications-page" hidden>
+  <div class="page-heading"><p class="eyebrow">TON ESPACE PERSONNEL</p><h2>Notifications</h2><p>Les nouvelles de ta communauté, au même endroit.</p></div>
+  <div class="notification-toolbar"><span id="notificationSummary">Reste informé de ce qui se passe.</span><button id="markAllRead" class="text-action">Tout marquer comme lu</button></div>
+  <div id="notificationList" class="notification-list">
+    <div class="notification-empty"><span class="notification-empty-icon">✦</span><h3>Tout est calme ici</h3><p>Les réactions à tes situations et les nouvelles réponses apparaîtront ici.</p></div>
+  </div>
+  <button id="backToFeed" class="secondary-btn">← Retour au fil</button>
+</section>
+<section class="bottom-note"><span>✳</span><p>Un bon débat commence par l'écoute.<br><b>Respecte les avis, même différents.</b></p></section>
     </main>
-    <footer class="bottom-nav"><a class="nav-item selected" href="#"><span>⌂</span>Accueil</a><button class="nav-item" id="createNav"><span>＋</span>Publier</button><button class="nav-item" id="activityNav"><span>◷</span>Activité</button><button class="nav-item" id="profileNav"><span>◉</span>Profil</button></footer>
+    <footer class="bottom-nav"><a class="nav-item selected" href="#"><span>⌂</span>Accueil</a><button class="nav-item" id="createNav"><span>＋</span>Publier</button><button class="nav-item" id="activityNav"><span>♧</span>Notifications</button><button class="nav-item" id="profileNav"><span>◉</span>Profil</button></footer>
   </div>
   <dialog id="messageDialog" class="message-dialog"><div class="dialog-inner"><button class="dialog-close" id="closeDialog" aria-label="Fermer">×</button><p class="eyebrow">À TA PLACE</p><h2 id="dialogTitle">Bienvenue</h2><p id="dialogText"></p><button class="primary-btn" id="dialogOk">Compris</button></div></dialog>
+  <dialog id="accountDialog" class="account-dialog">
+    <div class="account-wrap">
+      <button class="dialog-close" id="closeAccount" aria-label="Fermer">×</button>
+      <p class="eyebrow">BIENVENUE DANS LA COMMUNAUTÉ</p>
+      <h2 id="accountTitle">Crée ton espace</h2>
+      <p class="account-subtitle">Un profil simple pour participer aux décisions et retrouver tes échanges.</p>
+      <div class="account-switch"><button id="showSignup" class="active">Créer un compte</button><button id="showLogin">Se connecter</button></div>
+      <form id="signupForm" class="account-form">
+        <label>Prénom ou pseudo<input name="name" maxlength="32" required placeholder="Ex. Alex"></label>
+        <label>Nom d'utilisateur<input name="username" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" required placeholder="ex. alex_237"><small>3 à 20 caractères : lettres, chiffres et _</small></label>
+        <label>Adresse e-mail<input name="email" type="email" autocomplete="email" required placeholder="toi@exemple.com"></label>
+        <label>Mot de passe<input name="password" type="password" minlength="8" autocomplete="new-password" required placeholder="8 caractères minimum"></label>
+        <label class="consent-line"><input name="rules" type="checkbox" required> J'accepte les règles de respect et de sécurité de la communauté.</label>
+        <button class="primary-btn full-btn" type="submit">Créer mon compte ↗</button>
+      </form>
+      <form id="loginForm" class="account-form" hidden>
+        <label>Adresse e-mail<input name="email" type="email" autocomplete="email" required></label>
+        <label>Mot de passe<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary-btn full-btn" type="submit">Me connecter ↗</button>
+      </form>
+      <p class="account-feedback" id="accountFeedback" role="status"></p>
+      <p class="privacy-note">Ton adresse e-mail n'est pas affichée sur ton profil public. N'ajoute pas d'informations personnelles dans ta présentation.</p>
+    </div>
+  </dialog>
+  <script src="/firebase-config.js"></script>
+  <script type="module" src="/firebase.js"></script>
   <script src="/app.js" defer></script>
   <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(console.error));</script>
 </body>
