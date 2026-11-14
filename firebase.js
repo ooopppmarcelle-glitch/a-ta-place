@@ -61,3 +61,4 @@ const api = {
   }
 };
 window.atpFirebase = api;
+window.dispatchEvent(new Event('atpFirebaseReady'));
