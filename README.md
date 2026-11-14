@@ -44,3 +44,22 @@ Aucun message privé n'est activé. L'adresse e-mail n'est pas exposée dans le 
 
 ## État des tests
 La création du schéma et les politiques RLS ont été vérifiées dans Supabase. Le contrôle de sécurité Supabase ne signale aucun problème. Les tests complets dans un navigateur réel et le parcours d'inscription avec confirmation e-mail restent à effectuer.
+
+
+## Modération
+
+Les situations et commentaires sont enregistrés avec le statut `pending`. L'espace de modération utilise la fonction Supabase Edge `moderation` ; les décisions sont exécutées côté serveur. La table `public.moderators` est inaccessible aux rôles publics et ne peut être consultée que par la clé serveur.
+
+Pour désigner le premier modérateur :
+1. Créer son compte normalement dans l'application.
+2. Dans Supabase > SQL Editor, retrouver son identifiant avec une requête filtrée sur son adresse e-mail :
+   ```sql
+   select id from auth.users where email = 'ADRESSE_EMAIL_DU_COMPTE';
+   ```
+3. Ajouter cet identifiant dans la liste des modérateurs :
+   ```sql
+   insert into public.moderators (user_id)
+   values ('UUID_DU_COMPTE');
+   ```
+
+Ne jamais placer une clé `service_role` ou une clé secrète dans le navigateur ou dans GitHub. Seul le rôle serveur de la fonction Edge peut lire la table des modérateurs et modifier les statuts. Une fois le compte autorisé, le bouton de modération apparaît dans l'en-tête après reconnexion.
