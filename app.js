@@ -255,7 +255,7 @@ $("#dialogOk").addEventListener("click", () => $("#messageDialog").close());
 $("#closeAccount").addEventListener("click", () => accountDialog.close());
 $("#showSignup").addEventListener("click", () => setAccountMode("signup"));
 $("#showLogin").addEventListener("click", () => setAccountMode("login"));
-$("#profileBtn").addEventListener("click", () => openAccount(currentUser ? "login" : "signup"));
+$("#profileBtn").addEventListener("click", () => currentUser ? show("Ton compte", "Tu es connecté. Utilise Profil en bas pour te déconnecter.") : openAccount("signup"));
 $("#profileNav").addEventListener("click", () => currentUser
   ? supabase.auth.signOut().then(() => show("Déconnexion", "Tu es déconnecté de ton compte."))
   : openAccount("signup"));
