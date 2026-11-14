@@ -313,3 +313,6 @@ currentUser = session?.user || null;
 $("#profileBtn").textContent = currentUser ? (currentUser.user_metadata?.display_name || "M").slice(0, 1).toUpperCase() : "?";
 await loadFeed();
 if (location.hash === "#notifications") showNotifications();
+
+// Load the moderator workspace only after the Supabase client is ready.
+await import("./moderation-ui.js");
