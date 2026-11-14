@@ -37,6 +37,12 @@
   </div>
   <button id="backToFeed" class="secondary-btn">← Retour au fil</button>
 </section>
+<section id="moderationPage" class="notifications-page" hidden>
+  <div class="page-heading"><p class="eyebrow">ESPACE ÉQUIPE</p><h2>Modération</h2><p>Vérifie les contributions avant leur publication.</p></div>
+  <div class="moderation-toolbar"><span id="moderationSummary">Chargement de la file…</span><button id="refreshModeration" class="text-action">Actualiser</button></div>
+  <div id="moderationList" class="moderation-list" aria-live="polite"></div>
+  <button id="closeModeration" class="secondary-btn">← Retour au fil</button>
+</section>
 <section class="bottom-note"><span>✳</span><p>Un bon débat commence par l'écoute.<br><b>Respecte les avis, même différents.</b></p></section>
     </main>
     <footer class="bottom-nav"><a class="nav-item selected" href="#"><span>⌂</span>Accueil</a><button class="nav-item" id="createNav"><span>＋</span>Publier</button><button class="nav-item" id="activityNav"><span>♧</span>Notifications</button><button class="nav-item" id="profileNav"><span>◉</span>Profil</button></footer>
@@ -68,6 +74,7 @@
   </dialog>
   <script src="/supabase-config.js"></script>
   <script type="module" src="/app.js"></script>
+  <script type="module" src="/moderation-ui.js"></script>
   <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(console.error));</script>
 </body>
 </html>
