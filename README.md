@@ -10,9 +10,11 @@
 - Code source : GitHub.
 
 ## Configuration Supabase
-Le fichier `supabase-config.js` contient l'URL du projet et sa clé publishable. Cette clé est conçue pour être utilisée côté navigateur ; elle ne remplace jamais les règles RLS. Ne jamais ajouter une clé `service_role` ou une clé secrète dans le frontend.
+Le fichier `supabase-config.js` contient l'URL du projet et sa clé publishable. Cette clé est conçue pour le navigateur ; elle ne remplace jamais les règles RLS. Ne jamais ajouter une clé `service_role` ou une clé secrète dans le frontend.
 
-Le schéma SQL est appliqué au projet Supabase `A-TA-PLACE`. Tables initiales :
+Projet : `A-TA-PLACE` — région `eu-west-3`.
+
+Tables créées :
 - `profiles` : profil public minimal (aucune adresse e-mail publique).
 - `stories` et `story_choices` : situations et choix.
 - `votes` et `story_vote_totals` : votes et totaux agrégés sans exposer l'identité des votants.
@@ -20,16 +22,25 @@ Le schéma SQL est appliqué au projet Supabase `A-TA-PLACE`. Tables initiales :
 - `reports` : signalements privés.
 - `notifications` : notifications privées du destinataire.
 
-RLS est activé sur toutes ces tables. Les nouvelles situations sont enregistrées en attente de modération. Une interface et un processus de modération doivent être ajoutés avant un lancement public.
+RLS est activé sur les 8 tables. Les publications et commentaires sont créés en attente de modération ; les utilisateurs ne peuvent pas s'attribuer eux-mêmes le statut publié. Les notifications internes sont générées par la base lors des votes et commentaires.
 
-## Notifications push
-Le centre de notifications intégré lit la table Supabase `notifications`. Les notifications sont réservées à leur destinataire et leur création doit être effectuée par un backend de confiance. Les alertes push sur l'appareil ne sont pas encore configurées.
+## Fonctionnalités raccordées
+- Inscription et connexion par e-mail via Supabase Auth.
+- Chargement du fil partagé depuis PostgreSQL.
+- Création de situations et de choix.
+- Un vote par compte et par situation ; résultats agrégés.
+- Centre de notifications privé et marquage comme lu.
+- Installation PWA et cache de l'interface.
 
-## Démarrage
-Ouvrir `index.html` via un serveur local ou déployer le dépôt sur un hébergeur HTTPS. L'application nécessite une connexion Internet pour Supabase ; le service worker met en cache les ressources de l'interface, mais les données sociales ne sont pas disponibles hors ligne.
+## À terminer avant lancement public
+- Interface de modération et rôles de modérateur.
+- Interface de commentaires et gestion des signalements.
+- Alertes push sur l'appareil (le centre interne existe, mais OneSignal ou un autre service push n'est pas configuré).
+- Realtime, limites anti-spam et tests multi-comptes.
+- Déploiement HTTPS sur Netlify et tests sur Android.
 
-## État honnête
-- Supabase Auth et le fil de situations/votes sont raccordés dans le code.
-- Le schéma de base de données est créé et les politiques RLS sont activées.
-- Les commentaires, le processus de modération, les notifications automatiques, les alertes push et le déploiement ne sont pas encore finalisés.
-- Le projet n'a pas encore été testé dans un navigateur réel.
+## Confidentialité et sécurité
+Aucun message privé n'est activé. L'adresse e-mail n'est pas exposée dans le profil public. Ne publie pas d'informations permettant d'identifier ou de localiser une personne. Les contenus envoyés restent en attente de modération avant publication.
+
+## État des tests
+La création du schéma et les politiques RLS ont été vérifiées dans Supabase. Le contrôle de sécurité Supabase ne signale aucun problème. Les tests complets dans un navigateur réel et le parcours d'inscription avec confirmation e-mail restent à effectuer.
