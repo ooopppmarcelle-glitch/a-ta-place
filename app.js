@@ -127,3 +127,4 @@ function connectFirebaseAccount(){
 }
 window.addEventListener("atpFirebaseReady",connectFirebaseAccount);
 if(window.atpFirebase) connectFirebaseAccount();
+if(location.hash==="#notifications") showNotifications();
