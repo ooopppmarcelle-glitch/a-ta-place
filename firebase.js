@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, collection, query, orderBy, limit, onSnapshot, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, collection, query, orderBy, limit, onSnapshot, updateDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
 import { getMessaging, getToken, onMessage, isSupported } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-messaging.js";
 
 const config = window.ATP_FIREBASE_CONFIG || {};
@@ -22,9 +22,15 @@ const api = {
     if (!configured) throw new Error("Firebase n'est pas encore configuré. Ajoute les clés dans firebase-config.js.");
     const credential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(credential.user, {displayName:name});
-    await setDoc(doc(db,"users",credential.user.uid), {
-      displayName:name, username:username.toLowerCase(), email,
-      photoURL:"", bio:"", language:"fr", createdAt:serverTimestamp()
+    const usernameRef=doc(db,"usernames",username.toLowerCase());
+    await runTransaction(db,async transaction=>{
+      const existing=await transaction.get(usernameRef);
+      if(existing.exists()) throw new Error("Ce nom d'utilisateur est déjà utilisé. Choisis-en un autre.");
+      transaction.set(usernameRef,{uid:credential.user.uid,createdAt:serverTimestamp()});
+      transaction.set(doc(db,"users",credential.user.uid), {
+        displayName:name, username:username.toLowerCase(), email,
+        photoURL:"", bio:"", language:"fr", pushEnabled:false, createdAt:serverTimestamp()
+      });
     });
     return credential.user;
   },
@@ -39,7 +45,7 @@ const api = {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") throw new Error("Autorisation de notification refusée.");
     messaging = getMessaging();
-    const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    const registration = await navigator.serviceWorker.ready;
     const token = await getToken(messaging,{vapidKey:window.ATP_FIREBASE_VAPID_KEY,serviceWorkerRegistration:registration});
     if (!token) throw new Error("Firebase n'a pas fourni de jeton push. Vérifie la clé VAPID.");
     await setDoc(doc(db,"users",auth.currentUser.uid),{fcmToken:token,pushEnabled:true},{merge:true});
