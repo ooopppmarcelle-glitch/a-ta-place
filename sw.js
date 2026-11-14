@@ -1,13 +1,7 @@
+importScripts("/firebase-config.js");
 importScripts("https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/11.6.0/firebase-messaging-compat.js");
-const firebasePushConfig={
-  apiKey:"YOUR_FIREBASE_API_KEY",
-  authDomain:"YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:"YOUR_PROJECT_ID",
-  storageBucket:"YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId:"YOUR_MESSAGING_SENDER_ID",
-  appId:"YOUR_FIREBASE_APP_ID"
-};
+const firebasePushConfig=self.ATP_FIREBASE_CONFIG || {};
 let pushMessaging=null;
 if(firebasePushConfig.apiKey && !firebasePushConfig.apiKey.startsWith("YOUR_")){
   firebase.initializeApp(firebasePushConfig);
