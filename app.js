@@ -1,130 +1,315 @@
-const seedStories=[
-{id:"s1",name:"Mina",initial:"M",time:"Il y a 12 min",category:"AMITIÉ",text:"Ma meilleure amie raconte mes secrets à son copain. Je viens de le découvrir. Vous feriez quoi ?",choices:["Je lui parle franchement","Je prends mes distances","Je lui laisse une dernière chance"],votes:[42,31,18],mine:null},
-{id:"s2",name:"Joël",initial:"J",time:"Il y a 38 min",category:"QUOTIDIEN",text:"Un ami me demande de couvrir son retard au travail alors qu'il recommence chaque semaine. Je fais quoi ?",choices:["Je le couvre encore","Je refuse cette fois","Je lui conseille d'assumer"],votes:[12,56,37],mine:null},
-{id:"s3",name:"Anonyme",initial:"A",time:"Il y a 1 h",category:"FAMILLE",text:"On m'invite à une sortie, mais j'avais promis de passer la journée avec ma famille. Quel choix ferait le plus de sens ?",choices:["Je garde ma promesse","Je propose un autre jour","Je partage mon temps"],votes:[29,15,48],mine:null}
-];
-const KEY="atp-v1-stories";
-let stories=JSON.parse(localStorage.getItem(KEY)||"null")||seedStories;
-let filter="all";let deferredInstall=null;
-const $=s=>document.querySelector(s);
-const save=()=>localStorage.setItem(KEY,JSON.stringify(stories));
-const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function render(){let list=[...stories];if(filter==="popular")list.sort((a,b)=>b.votes.reduce((x,y)=>x+y,0)-a.votes.reduce((x,y)=>x+y,0));if(filter==="new")list.reverse();$("#feedCount").textContent=list.length+" sujets";$("#feed").innerHTML=list.length?list.map(story=>{const total=story.votes.reduce((a,b)=>a+b,0);return `<article class="story-card"><div class="story-meta"><div class="author"><span class="author-avatar">${escapeHTML(story.initial)}</span>${escapeHTML(story.name)}</div><span class="story-time">${escapeHTML(story.time)}</span></div><span class="category">${escapeHTML(story.category)}</span><p class="story-text">${escapeHTML(story.text)}</p><p class="vote-label">${story.mine===null?"TU FERAIS QUOI ?":"RÉSULTATS DE LA COMMUNAUTÉ"}</p><div class="choices">${story.choices.map((choice,i)=>{const pct=total?Math.round(story.votes[i]/total*100):0;return `<button class="choice ${story.mine===i?"chosen":""}" data-story="${story.id}" data-choice="${i}" ${story.mine!==null?"disabled":""}><span class="choice-fill" style="width:${story.mine!==null?pct:0}%"></span><span class="choice-label">${escapeHTML(choice)}</span><span class="choice-percent">${story.mine!==null?pct+"%":"›"}</span></button>`}).join("")}</div><div class="story-footer"><span>◉ ${total} votes</span><button class="share-btn" data-share="${story.id}">Partager ↗</button></div></article>`}).join(""):'<div class="empty-state">Aucune situation pour le moment. Lance le débat !</div>'}
-function show(title,text){$("#dialogTitle").textContent=title;$("#dialogText").textContent=text;$("#messageDialog").showModal()}
-$("#storyInput").addEventListener("input",e=>$("#charCount").textContent=e.target.value.length+"/240");
-$("#publishBtn").addEventListener("click",()=>{const text=$("#storyInput").value.trim();if(text.length<12){show("Raconte un peu plus","Ajoute quelques détails pour aider la communauté à comprendre ta situation (12 caractères minimum).");return}const id=crypto.randomUUID?crypto.randomUUID():String(Date.now());stories.unshift({id,name:"Toi",initial:"T",time:"À l'instant",category:"NOUVEAU DÉBAT",text,choices:["J'en parle directement","Je prends du recul","Je laisse passer"],votes:[0,0,0],mine:null});save();$("#storyInput").value="";$("#charCount").textContent="0/240";filter="all";document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.filter==="all"));render();show("C'est publié !","Ta situation est maintenant dans le fil. Invite tes proches à donner leur avis.");window.scrollTo({top:500,behavior:"smooth"})});
-$("#feed").addEventListener("click",e=>{const vote=e.target.closest("[data-choice]");if(vote){const story=stories.find(s=>s.id===vote.dataset.story);if(!story||story.mine!==null)return;const choice=Number(vote.dataset.choice);story.votes[choice]++;story.mine=choice;save();render();return}const share=e.target.closest("[data-share]");if(share){const s=stories.find(x=>x.id===share.dataset.share);const text="Tu ferais quoi à ma place ? "+s.text+" — Donne ton avis sur À TA PLACE.";if(navigator.share)navigator.share({title:"À TA PLACE",text,url:location.href}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(text+" "+location.href).then(()=>show("Lien copié","Partage ce débat avec tes amis."));else show("À partager",text)}});
-document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>{filter=t.dataset.filter;document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===t));render()}));
-$("#createNav").addEventListener("click",()=>{$("#storyInput").focus();window.scrollTo({top:250,behavior:"smooth"})});
-$("#closeDialog").addEventListener("click",()=>$("#messageDialog").close());$("#dialogOk").addEventListener("click",()=>$("#messageDialog").close());
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;$("#installBtn").hidden=false});
-$("#installBtn").addEventListener("click",async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$("#installBtn").hidden=true});
-render();
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
 
-/* --- Comptes Firebase et centre de notifications --- */
-let signedInUser=null;
-let stopNotifications=null;
-let currentNotifications=[];
-const accountDialog=$("#accountDialog");
-const notificationPage=$("#notificationsPage");
-function openAccount(mode="signup"){
-  accountDialog.showModal();
+const config = window.ATP_SUPABASE_CONFIG || {};
+const supabase = createClient(config.url, config.publishableKey);
+window.atpSupabase = supabase;
+
+const $ = (selector) => document.querySelector(selector);
+const escapeHTML = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+}[c]));
+
+let session = null;
+let currentUser = null;
+let stories = [];
+let filter = "all";
+let currentNotifications = [];
+
+const accountDialog = $("#accountDialog");
+const notificationPage = $("#notificationsPage");
+
+function show(title, text) {
+  $("#dialogTitle").textContent = title;
+  $("#dialogText").textContent = text;
+  $("#messageDialog").showModal();
+}
+function accountMessage(message, isError = false) {
+  const node = $("#accountFeedback");
+  node.textContent = message;
+  node.classList.toggle("error", isError);
+}
+function setAccountMode(mode = "signup") {
+  const signup = mode === "signup";
+  $("#signupForm").hidden = !signup;
+  $("#loginForm").hidden = signup;
+  $("#showSignup").classList.toggle("active", signup);
+  $("#showLogin").classList.toggle("active", !signup);
+  $("#accountTitle").textContent = signup ? "Crée ton espace" : "Content de te revoir";
+  accountMessage("");
+}
+function openAccount(mode = "signup") {
   setAccountMode(mode);
+  accountDialog.showModal();
 }
-function setAccountMode(mode){
-  const signup=mode==="signup";
-  $("#signupForm").hidden=!signup;
-  $("#loginForm").hidden=signup;
-  $("#showSignup").classList.toggle("active",signup);
-  $("#showLogin").classList.toggle("active",!signup);
-  $("#accountTitle").textContent=signup?"Crée ton espace":"Content de te revoir";
-  $("#accountFeedback").textContent="";
-}
-function accountMessage(message,isError=false){
-  const node=$("#accountFeedback");node.textContent=message;node.classList.toggle("error",isError);
-}
-function showNotifications(){
-  document.querySelector(".welcome").hidden=true;
-  document.querySelector(".composer-card").hidden=true;
-  document.querySelector(".feed-tabs").hidden=true;
-  document.querySelector(".feed-heading").hidden=true;
-  $("#feed").hidden=true;
-  document.querySelector(".bottom-note").hidden=true;
-  notificationPage.hidden=false;
-  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("selected"));
+function showNotifications() {
+  for (const selector of [".welcome", ".composer-card", ".feed-tabs", ".feed-heading", "#feed", ".bottom-note"]) {
+    $(selector).hidden = true;
+  }
+  notificationPage.hidden = false;
+  document.querySelectorAll(".nav-item").forEach((node) => node.classList.remove("selected"));
   $("#activityNav").classList.add("selected");
-  window.scrollTo({top:0,behavior:"smooth"});
+  loadNotifications();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
-function showFeed(){
-  notificationPage.hidden=true;
-  document.querySelector(".welcome").hidden=false;
-  document.querySelector(".composer-card").hidden=false;
-  document.querySelector(".feed-tabs").hidden=false;
-  document.querySelector(".feed-heading").hidden=false;
-  $("#feed").hidden=false;
-  document.querySelector(".bottom-note").hidden=false;
-  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("selected"));
+function showFeed() {
+  notificationPage.hidden = true;
+  for (const selector of [".welcome", ".composer-card", ".feed-tabs", ".feed-heading", "#feed", ".bottom-note"]) {
+    $(selector).hidden = false;
+  }
+  document.querySelectorAll(".nav-item").forEach((node) => node.classList.remove("selected"));
   document.querySelector('.nav-item[href="#"]')?.classList.add("selected");
 }
-function renderNotifications(items){
-  currentNotifications=items;
-  const unread=items.filter(n=>!n.read).length;
-  $("#notificationBadge").hidden=!unread;
-  $("#notificationBadge").textContent=unread>9?"9+":String(unread);
-  $("#notificationSummary").textContent=unread?unread+" nouvelle(s) notification(s)":items.length+" notification(s)";
-  if(!items.length){
-    $("#notificationList").innerHTML='<div class="notification-empty"><span class="notification-empty-icon">✦</span><h3>Tout est calme ici</h3><p>Les réactions à tes situations et les nouvelles réponses apparaîtront ici.</p></div>';
+function timeAgo(value) {
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000));
+  if (minutes < 1) return "À l'instant";
+  if (minutes < 60) return `Il y a ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Il y a ${hours} h`;
+  return new Date(value).toLocaleDateString("fr-FR");
+}
+
+async function loadFeed() {
+  $("#feed").innerHTML = '<div class="empty-state">Chargement des situations…</div>';
+  let query = supabase.from("stories").select("id,body,author_id,status,created_at");
+  query = currentUser
+    ? query.or(`status.eq.published,author_id.eq.${currentUser.id}`)
+    : query.eq("status", "published");
+  const { data: storyRows, error } = await query.order("created_at", { ascending: false }).limit(50);
+  if (error) {
+    $("#feed").innerHTML = '<div class="empty-state">Impossible de charger le fil. Réessaie dans un instant.</div>';
+    console.error("Feed:", error);
     return;
   }
-  $("#notificationList").innerHTML=items.map(n=>`<article class="notification-item ${n.read?"":"unread"}"><span class="notification-symbol">${n.type==="comment"?"↳":n.type==="vote"?"✓":n.type==="reveal"?"✦":"●"}</span><div><h3>${escapeHTML(n.title||"Nouvelle activité")}</h3><p>${escapeHTML(n.body||"Une personne a interagi avec ta situation.")}</p><time>${n.createdAt?.toDate?n.createdAt.toDate().toLocaleString("fr-FR"):"Récemment"}</time></div><span class="unread-dot"></span></article>`).join("");
-}
-$("#notificationsBtn").addEventListener("click",showNotifications);
-$("#activityNav").addEventListener("click",showNotifications);
-$("#backToFeed").addEventListener("click",showFeed);
-$("#closeAccount").addEventListener("click",()=>accountDialog.close());
-$("#showSignup").addEventListener("click",()=>setAccountMode("signup"));
-$("#showLogin").addEventListener("click",()=>setAccountMode("login"));
-$("#profileBtn").addEventListener("click",()=>openAccount(signedInUser?"login":"signup"));
-$("#profileNav").addEventListener("click",()=>openAccount(signedInUser?"login":"signup"));
-$("#signupForm").addEventListener("submit",async e=>{
-  e.preventDefault();const f=new FormData(e.currentTarget);
-  const name=String(f.get("name")).trim(),username=String(f.get("username")).trim(),email=String(f.get("email")).trim(),password=String(f.get("password"));
-  try{
-    const fb=window.atpFirebase;if(!fb?.configured)throw new Error("Firebase doit d'abord être configuré dans firebase-config.js.");
-    accountMessage("Création de ton compte…");
-    await fb.signUp({name,username,email,password});
-    accountDialog.close();show("Bienvenue sur À TA PLACE","Ton compte est créé. Tu peux maintenant retrouver ton profil sur tes appareils.");
-  }catch(err){accountMessage(err.message||"Impossible de créer le compte.",true)}
-});
-$("#loginForm").addEventListener("submit",async e=>{
-  e.preventDefault();const f=new FormData(e.currentTarget);
-  try{accountMessage("Connexion…");await window.atpFirebase.signIn(String(f.get("email")).trim(),String(f.get("password")));accountDialog.close();show("Connexion réussie","Tu es connecté à ton espace À TA PLACE.");}
-  catch(err){accountMessage(err.message||"Connexion impossible.",true)}
-});
-$("#enablePushBtn").addEventListener("click",async()=>{
-  try{await window.atpFirebase.enablePush();show("Notifications activées","Tu pourras recevoir les alertes de À TA PLACE lorsque l'application est installée ou autorisée par ton navigateur.");}
-  catch(err){show("Activation impossible",err.message||"Vérifie la configuration Firebase et les autorisations du navigateur.");}
-});
-$("#markAllRead").addEventListener("click",async()=>{
-  if(!window.atpFirebase)return;
-  await Promise.all(currentNotifications.filter(n=>!n.read).map(n=>window.atpFirebase.markRead(n.id)));
-});
-function connectFirebaseAccount(){
-  const fb=window.atpFirebase;
-  if(!fb?.configured)return;
-  fb.onAuth(user=>{
-    signedInUser=user;
-    $("#profileBtn").textContent=user?(user.displayName||"A").slice(0,1).toUpperCase():"?";
-    if(stopNotifications){stopNotifications();stopNotifications=null;}
-    if(user){
-      stopNotifications=fb.watchNotifications(renderNotifications,err=>console.warn("Notifications:",err));
-      fb.onForegroundMessage(payload=>{
-        const note=payload.notification||{};
-        renderNotifications([{id:"foreground-"+Date.now(),title:note.title||"À TA PLACE",body:note.body||"Nouvelle activité",type:"activity",read:false},...currentNotifications]);
-      });
-    }else renderNotifications([]);
+  const ids = (storyRows || []).map((story) => story.id);
+  if (!ids.length) {
+    stories = [];
+    renderFeed();
+    return;
+  }
+  const [profilesResult, choicesResult, totalsResult, myVotesResult] = await Promise.all([
+    supabase.from("profiles").select("id,display_name,username").in("id", [...new Set(storyRows.map((s) => s.author_id))]),
+    supabase.from("story_choices").select("id,story_id,label,position").in("story_id", ids).order("position"),
+    supabase.from("story_vote_totals").select("story_id,choice_id,vote_count").in("story_id", ids),
+    currentUser
+      ? supabase.from("votes").select("story_id,choice_id").eq("user_id", currentUser.id).in("story_id", ids)
+      : Promise.resolve({ data: [], error: null })
+  ]);
+  if (profilesResult.error || choicesResult.error || totalsResult.error || myVotesResult.error) {
+    console.error("Feed relations:", profilesResult.error || choicesResult.error || totalsResult.error || myVotesResult.error);
+  }
+  const profiles = new Map((profilesResult.data || []).map((p) => [p.id, p]));
+  const choicesByStory = new Map();
+  for (const choice of choicesResult.data || []) {
+    if (!choicesByStory.has(choice.story_id)) choicesByStory.set(choice.story_id, []);
+    choicesByStory.get(choice.story_id).push(choice);
+  }
+  const totals = new Map((totalsResult.data || []).map((item) => [item.choice_id, Number(item.vote_count)]));
+  const myVotes = new Map((myVotesResult.data || []).map((item) => [item.story_id, item.choice_id]));
+  stories = storyRows.map((story) => {
+    const profile = profiles.get(story.author_id);
+    return {
+      ...story,
+      name: profile?.display_name || "Membre",
+      username: profile?.username || "",
+      choices: (choicesByStory.get(story.id) || []).map((choice) => ({
+        ...choice, votes: totals.get(choice.id) || 0
+      })),
+      myVote: myVotes.get(story.id) || null
+    };
   });
+  renderFeed();
 }
-window.addEventListener("atpFirebaseReady",connectFirebaseAccount);
-if(window.atpFirebase) connectFirebaseAccount();
-if(location.hash==="#notifications") showNotifications();
+
+function renderFeed() {
+  let list = [...stories];
+  if (filter === "popular") list.sort((a, b) => b.choices.reduce((n, c) => n + c.votes, 0) - a.choices.reduce((n, c) => n + c.votes, 0));
+  if (filter === "new") list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  $("#feedCount").textContent = `${list.length} sujets`;
+  $("#feed").innerHTML = list.length ? list.map((story) => {
+    const total = story.choices.reduce((sum, choice) => sum + choice.votes, 0);
+    const authorInitial = (story.name || "M").slice(0, 1).toUpperCase();
+    const isPending = story.status !== "published";
+    return `<article class="story-card">
+      <div class="story-meta"><div class="author"><span class="author-avatar">${escapeHTML(authorInitial)}</span>${escapeHTML(story.name)}</div><span class="story-time">${escapeHTML(timeAgo(story.created_at))}</span></div>
+      ${isPending ? '<span class="category">EN ATTENTE DE MODÉRATION</span>' : '<span class="category">SITUATION DE LA COMMUNAUTÉ</span>'}
+      <p class="story-text">${escapeHTML(story.body)}</p>
+      <p class="vote-label">${story.myVote ? "RÉSULTATS DE LA COMMUNAUTÉ" : "TU FERAIS QUOI ?"}</p>
+      <div class="choices">${story.choices.map((choice) => {
+        const pct = total ? Math.round(choice.votes / total * 100) : 0;
+        const voted = story.myVote === choice.id;
+        const canVote = story.status === "published" && !story.myVote;
+        return `<button class="choice ${voted ? "chosen" : ""}" data-story="${story.id}" data-choice="${choice.id}" ${canVote ? "" : "disabled"}>
+          <span class="choice-fill" style="width:${story.myVote ? pct : 0}%"></span>
+          <span class="choice-label">${escapeHTML(choice.label)}</span>
+          <span class="choice-percent">${story.myVote ? pct + "%" : "›"}</span>
+        </button>`;
+      }).join("")}</div>
+      <div class="story-footer"><span>◉ ${total} votes</span><button class="share-btn" data-share="${story.id}">Partager ↗</button></div>
+    </article>`;
+  }).join("") : '<div class="empty-state">Aucune situation publiée pour le moment. Reviens bientôt !</div>';
+}
+
+async function publishStory() {
+  if (!currentUser) return openAccount("signup");
+  const body = $("#storyInput").value.trim();
+  if (body.length < 12) return show("Raconte un peu plus", "Ajoute quelques détails pour aider la communauté à comprendre ta situation (12 caractères minimum).");
+  const button = $("#publishBtn");
+  button.disabled = true;
+  button.textContent = "Envoi…";
+  const { data: story, error } = await supabase.from("stories")
+    .insert({ author_id: currentUser.id, body, status: "pending" })
+    .select("id").single();
+  if (error) {
+    show("Publication impossible", error.message.includes("row-level") ? "Connecte-toi pour publier ta situation." : "Réessaie dans un instant.");
+    console.error(error);
+  } else {
+    const labels = ["J'en parle directement", "Je prends du recul", "Je laisse passer"];
+    const { error: choicesError } = await supabase.from("story_choices").insert(
+      labels.map((label, index) => ({ story_id: story.id, label, position: index + 1 }))
+    );
+    if (choicesError) {
+      console.error(choicesError);
+      show("Situation enregistrée", "La situation attend la modération. Les choix n'ont pas pu être ajoutés ; l'équipe technique doit vérifier.");
+    } else {
+      $("#storyInput").value = "";
+      $("#charCount").textContent = "0/240";
+      show("Situation envoyée", "Elle est enregistrée et attend une vérification avant d'apparaître publiquement.");
+    }
+    await loadFeed();
+  }
+  button.disabled = false;
+  button.innerHTML = 'Demander l’avis <span>↗</span>';
+}
+
+async function vote(storyId, choiceId) {
+  if (!currentUser) return openAccount("signup");
+  const { error } = await supabase.from("votes").insert({
+    story_id: storyId, choice_id: choiceId, user_id: currentUser.id
+  });
+  if (error) {
+    show("Vote non enregistré", error.code === "23505" ? "Tu as déjà voté pour cette situation." : "Connecte-toi et réessaie.");
+    return;
+  }
+  await loadFeed();
+}
+async function loadNotifications() {
+  if (!currentUser) {
+    $("#notificationList").innerHTML = '<div class="notification-empty"><h3>Connecte-toi pour voir tes notifications</h3><p>Ton espace personnel est réservé à ton compte.</p></div>';
+    $("#notificationBadge").hidden = true;
+    return;
+  }
+  const { data, error } = await supabase.from("notifications")
+    .select("id,kind,title,body,read_at,created_at")
+    .eq("recipient_id", currentUser.id).order("created_at", { ascending: false }).limit(50);
+  if (error) {
+    console.error("Notifications:", error);
+    $("#notificationList").innerHTML = '<div class="notification-empty"><h3>Notifications indisponibles</h3><p>Réessaie plus tard.</p></div>';
+    return;
+  }
+  currentNotifications = data || [];
+  const unread = currentNotifications.filter((n) => !n.read_at).length;
+  $("#notificationBadge").hidden = !unread;
+  $("#notificationBadge").textContent = unread > 9 ? "9+" : String(unread);
+  $("#notificationSummary").textContent = unread ? `${unread} nouvelle(s) notification(s)` : `${currentNotifications.length} notification(s)`;
+  $("#notificationList").innerHTML = currentNotifications.length ? currentNotifications.map((n) => `
+    <article class="notification-item ${n.read_at ? "" : "unread"}">
+      <span class="notification-symbol">${n.kind === "comment" ? "↳" : n.kind === "vote" ? "✓" : n.kind === "reveal" ? "✦" : "●"}</span>
+      <div><h3>${escapeHTML(n.title)}</h3><p>${escapeHTML(n.body)}</p><time>${escapeHTML(timeAgo(n.created_at))}</time></div>
+      ${n.read_at ? "" : '<span class="unread-dot"></span>'}
+    </article>`).join("") : '<div class="notification-empty"><span class="notification-empty-icon">✦</span><h3>Tout est calme ici</h3><p>Les nouvelles de ta communauté apparaîtront ici.</p></div>';
+}
+async function markAllRead() {
+  if (!currentUser) return;
+  const unreadIds = currentNotifications.filter((n) => !n.read_at).map((n) => n.id);
+  if (!unreadIds.length) return;
+  const { error } = await supabase.from("notifications").update({ read_at: new Date().toISOString() }).in("id", unreadIds);
+  if (error) console.error(error);
+  await loadNotifications();
+}
+
+$("#storyInput").addEventListener("input", (event) => $("#charCount").textContent = event.target.value.length + "/240");
+$("#publishBtn").addEventListener("click", publishStory);
+$("#feed").addEventListener("click", (event) => {
+  const choice = event.target.closest("[data-choice]");
+  if (choice) return vote(choice.dataset.story, choice.dataset.choice);
+  const share = event.target.closest("[data-share]");
+  if (share) {
+    const story = stories.find((item) => item.id === share.dataset.share);
+    if (!story) return;
+    const text = `Tu ferais quoi à ma place ? ${story.body} — Donne ton avis sur À TA PLACE.`;
+    if (navigator.share) navigator.share({ title: "À TA PLACE", text, url: location.href }).catch(() => {});
+    else if (navigator.clipboard) navigator.clipboard.writeText(text + " " + location.href).then(() => show("Lien copié", "Partage ce débat avec tes amis."));
+  }
+});
+document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
+  filter = tab.dataset.filter;
+  document.querySelectorAll(".tab").forEach((item) => item.classList.toggle("active", item === tab));
+  renderFeed();
+}));
+$("#createNav").addEventListener("click", () => { $("#storyInput").focus(); window.scrollTo({ top: 250, behavior: "smooth" }); });
+$("#notificationsBtn").addEventListener("click", showNotifications);
+$("#activityNav").addEventListener("click", showNotifications);
+$("#backToFeed").addEventListener("click", showFeed);
+$("#closeDialog").addEventListener("click", () => $("#messageDialog").close());
+$("#dialogOk").addEventListener("click", () => $("#messageDialog").close());
+$("#closeAccount").addEventListener("click", () => accountDialog.close());
+$("#showSignup").addEventListener("click", () => setAccountMode("signup"));
+$("#showLogin").addEventListener("click", () => setAccountMode("login"));
+$("#profileBtn").addEventListener("click", () => openAccount(currentUser ? "login" : "signup"));
+$("#profileNav").addEventListener("click", () => currentUser
+  ? supabase.auth.signOut().then(() => show("Déconnexion", "Tu es déconnecté de ton compte."))
+  : openAccount("signup"));
+$("#markAllRead").addEventListener("click", markAllRead);
+$("#enablePushBtn").addEventListener("click", () => show("Alertes push bientôt disponibles", "Le centre de notifications est prêt. Les alertes sur l'appareil seront activées après la configuration du service push."));
+$("#signupForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const displayName = String(form.get("name") || "").trim();
+  const username = String(form.get("username") || "").trim().toLowerCase();
+  const email = String(form.get("email") || "").trim();
+  const password = String(form.get("password") || "");
+  if (!/^[a-z0-9_]{3,20}$/.test(username)) return accountMessage("Nom d'utilisateur invalide.", true);
+  accountMessage("Création du compte…");
+  const { error } = await supabase.auth.signUp({
+    email, password,
+    options: { data: { display_name: displayName, username } }
+  });
+  if (error) return accountMessage(error.message, true);
+  accountMessage("Compte créé. Vérifie ton e-mail si une confirmation est demandée.");
+});
+$("#loginForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  accountMessage("Connexion…");
+  const { error } = await supabase.auth.signInWithPassword({
+    email: String(form.get("email") || "").trim(),
+    password: String(form.get("password") || "")
+  });
+  if (error) return accountMessage(error.message, true);
+  accountDialog.close();
+  show("Connexion réussie", "Tu es connecté à ton espace À TA PLACE.");
+});
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  const installPrompt = event;
+  $("#installBtn").hidden = false;
+  $("#installBtn").onclick = async () => {
+    await installPrompt.prompt();
+    $("#installBtn").hidden = true;
+  };
+});
+
+supabase.auth.onAuthStateChange((_event, newSession) => {
+  session = newSession;
+  currentUser = newSession?.user || null;
+  $("#profileBtn").textContent = currentUser ? (currentUser.user_metadata?.display_name || "M").slice(0, 1).toUpperCase() : "?";
+  loadFeed();
+  if (!notificationPage.hidden) loadNotifications();
+});
+const { data: sessionData } = await supabase.auth.getSession();
+session = sessionData.session;
+currentUser = session?.user || null;
+$("#profileBtn").textContent = currentUser ? (currentUser.user_metadata?.display_name || "M").slice(0, 1).toUpperCase() : "?";
+await loadFeed();
+if (location.hash === "#notifications") showNotifications();
