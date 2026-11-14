@@ -157,7 +157,7 @@ async function publishStory() {
   button.disabled = true;
   button.textContent = "Envoi…";
   const { data: story, error } = await supabase.from("stories")
-    .insert({ author_id: currentUser.id, body, status: "pending" })
+    .insert({ author_id: currentUser.id, body })
     .select("id").single();
   if (error) {
     show("Publication impossible", error.message.includes("row-level") ? "Connecte-toi pour publier ta situation." : "Réessaie dans un instant.");
