@@ -109,7 +109,7 @@ $("#markAllRead").addEventListener("click",async()=>{
   if(!window.atpFirebase)return;
   await Promise.all(currentNotifications.filter(n=>!n.read).map(n=>window.atpFirebase.markRead(n.id)));
 });
-window.addEventListener("atpFirebaseReady",()=>{
+function connectFirebaseAccount(){
   const fb=window.atpFirebase;
   if(!fb?.configured)return;
   fb.onAuth(user=>{
@@ -124,4 +124,6 @@ window.addEventListener("atpFirebaseReady",()=>{
       });
     }else renderNotifications([]);
   });
-});
+}
+window.addEventListener("atpFirebaseReady",connectFirebaseAccount);
+if(window.atpFirebase) connectFirebaseAccount();
