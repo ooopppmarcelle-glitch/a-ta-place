@@ -1,5 +1,5 @@
-const CACHE = "a-ta-place-supabase-v1";
-const CORE = ["/", "/index.html", "/styles.css", "/app.js", "/supabase-config.js", "/manifest.webmanifest", "/icon.svg"];
+const CACHE = "a-ta-place-supabase-v2";
+const CORE = ["/", "/index.html", "/styles.css", "/app.js", "/moderation-ui.js", "/supabase-config.js", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE)).then(() => self.skipWaiting()));
